@@ -360,8 +360,8 @@ macro_rules! declare_realtime_entity_module {
                 fn tick_entity(
                     &mut self,
                     entity: Entity,
-                    frame_remaining: Duration,
-                ) -> (Self::EntityEvents, Duration) {
+                    frame_remaining: std::time::Duration,
+                ) -> (Self::EntityEvents, std::time::Duration) {
                     RealtimeComponents::tick_entity(self, entity, frame_remaining)
                 }
             }
