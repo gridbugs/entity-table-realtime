@@ -16,3 +16,6 @@ serialize = ["serde", "entity_table/serialize"]
 [dependencies]
 entity_table = "0.2"
 serde = { version = "1.0", features = ["serde_derive"], optional = true }
+
+[dev-dependencies]
+serde = { version = "1.0", features = ["serde_derive"] }

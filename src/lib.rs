@@ -1,6 +1,8 @@
 use entity_table::ComponentTable;
 pub use entity_table::{ComponentTableIter, ComponentTableIterMut, Entity};
 #[cfg(feature = "serialize")]
+pub use serde; // Re-export serde so it can be referenced in macro body
+#[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
@@ -167,6 +169,44 @@ pub fn process_entity_frame<C: ContextContainsRealtimeComponents>(
     }
 }
 
+#[cfg(not(feature = "serialize"))]
+#[macro_export]
+macro_rules! declare_realtime_entity_module_types {
+    { $($component_name:ident: $component_type:ty,)* } => {
+        /// Struct where each field contains a table associating entities with data
+        /// (ie. components)
+        #[derive(Debug, Clone)]
+        pub struct RealtimeComponents {
+            $(pub $component_name: $crate::RealtimeComponentTable<$component_type>,)*
+        }
+
+        /// Struct holding all components for a single entity
+        #[derive(Debug, Clone)]
+        pub struct RealtimeEntityData {
+            $(pub $component_name: Option<$component_type>,)*
+        }
+    }
+}
+
+#[cfg(feature = "serialize")]
+#[macro_export]
+macro_rules! declare_realtime_entity_module_types {
+    { $($component_name:ident: $component_type:ty,)* } => {
+        /// Struct where each field contains a table associating entities with data
+        /// (ie. components)
+        #[derive(Debug, Clone, $crate::serde::Serialize, $crate::serde::Deserialize)]
+        pub struct RealtimeComponents {
+            $(pub $component_name: $crate::RealtimeComponentTable<$component_type>,)*
+        }
+
+        /// Struct holding all components for a single entity
+        #[derive(Debug, Clone, $crate::serde::Serialize, $crate::serde::Deserialize)]
+        pub struct RealtimeEntityData {
+            $(pub $component_name: Option<$component_type>,)*
+        }
+    }
+}
+
 #[macro_export]
 macro_rules! declare_realtime_entity_module {
     { $module_name:ident[$context:ty] { $($component_name:ident: $component_type:ty,)* } } => {
@@ -175,16 +215,13 @@ macro_rules! declare_realtime_entity_module {
     { $module_name:ident<$lt:lifetime>[$context:ty] { $($component_name:ident: $component_type:ty,)* } } => {
         $crate::declare_realtime_entity_module! { $module_name<$lt,>[$context] { $($component_name: $component_type,)* } }
     };
-    { $module_name:ident<$($lt:lifetime,)*>[$context:ty] { $($component_name:ident: $component_type:ty,)* } } => {
+    { $module_name:ident<$($lt:lifetime),* $(,)?>[$context:ty] { $($component_name:ident: $component_type:ty,)* } } => {
         mod $module_name {
             #[allow(unused_imports)]
             use super::*;
 
-            /// Struct where each field contains a table associating entities with data
-            /// (ie. components)
-            #[derive(Debug, Clone)]
-            pub struct RealtimeComponents {
-                $(pub $component_name: $crate::RealtimeComponentTable<$component_type>,)*
+            $crate::declare_realtime_entity_module_types! {
+                $($component_name: $component_type,)*
             }
 
             impl Default for RealtimeComponents {
@@ -193,12 +230,6 @@ macro_rules! declare_realtime_entity_module {
                         $($component_name: Default::default(),)*
                     }
                 }
-            }
-
-            /// Struct holding all components for a single entity
-            #[derive(Debug, Clone)]
-            pub struct RealtimeEntityData {
-                $(pub $component_name: Option<$component_type>,)*
             }
 
             impl Default for RealtimeEntityData {
