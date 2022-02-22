@@ -250,7 +250,7 @@ macro_rules! declare_realtime_entity_module {
                 #[allow(unused)]
                 pub fn apply<$($lt,)*>(
                     self,
-                    entity: entity_table::Entity,
+                    entity: $crate::Entity,
                     context: &mut $context,
                 ) {
                     $(if let Some(event) = self.$component_name {
@@ -264,7 +264,7 @@ macro_rules! declare_realtime_entity_module {
             }
 
             impl<$($lt,)*> $crate::RealtimeEntityEvents<$context> for RealtimeEntityEvents {
-                fn apply(self, entity: Entity, context: &mut $context) {
+                fn apply(self, entity: $crate::Entity, context: &mut $context) {
                     RealtimeEntityEvents::apply(self, entity, context);
                 }
             }
@@ -338,6 +338,7 @@ macro_rules! declare_realtime_entity_module {
                     })*
                     $(let $component_name = if let Some(scheduled_component) = components.$component_name.as_mut() {
                         if until_next_tick == scheduled_component.until_next_tick {
+                            use $crate::RealtimeComponent;
                             let (event, until_next_tick) = scheduled_component.component.tick();
                             scheduled_component.until_next_tick = until_next_tick;
                             Some(event)
@@ -359,7 +360,7 @@ macro_rules! declare_realtime_entity_module {
 
                 fn tick_entity(
                     &mut self,
-                    entity: Entity,
+                    entity: $crate::Entity,
                     frame_remaining: std::time::Duration,
                 ) -> (Self::EntityEvents, std::time::Duration) {
                     RealtimeComponents::tick_entity(self, entity, frame_remaining)
