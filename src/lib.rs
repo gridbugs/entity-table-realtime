@@ -1,5 +1,5 @@
 use entity_table::ComponentTable;
-pub use entity_table::{ComponentTableIter, ComponentTableIterMut, Entity};
+pub use entity_table::{ComponentTableIter, ComponentTableIterMut, Entities, Entity};
 #[cfg(feature = "serialize")]
 pub use serde; // Re-export serde so it can be referenced in macro body
 #[cfg(feature = "serialize")]
@@ -138,6 +138,7 @@ impl<'a, T: RealtimeComponent> Iterator for RealtimeComponentTableIterMut<'a, T>
 pub trait ContextContainsRealtimeComponents {
     type Components: RealtimeComponents<Self>;
     fn components_mut(&mut self) -> &mut Self::Components;
+    fn realtime_entities(&self) -> Entities;
 }
 
 pub trait RealtimeEntityEvents<C: ?Sized> {
@@ -368,4 +369,23 @@ macro_rules! declare_realtime_entity_module {
             }
         }
     };
+}
+
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Default)]
+pub struct AnimationContext {
+    realtime_entities: Vec<Entity>,
+}
+
+impl AnimationContext {
+    pub fn tick<C: ContextContainsRealtimeComponents>(
+        &mut self,
+        mut context: C,
+        frame_duration: Duration,
+    ) {
+        self.realtime_entities.extend(context.realtime_entities());
+        for entity in self.realtime_entities.drain(..) {
+            process_entity_frame(entity, frame_duration, &mut context);
+        }
+    }
 }
